@@ -1,0 +1,92 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="theme-color" content="#f6f7ff">
+<title>StudyFlow | Student Planner</title>
+<style>
+:root{--p:#5b61e9;--bg:#f6f7ff;--ink:#202544;--muted:#858aa3;--line:#e8e9f2}
+*{box-sizing:border-box}
+body{margin:0;background:#eceef8;color:var(--ink);font-family:Arial,sans-serif}
+.app{max-width:440px;min-height:100vh;margin:auto;background:var(--bg);padding-bottom:85px}
+header{display:flex;align-items:center;justify-content:space-between;padding:20px}
+.logo{font-size:21px;font-weight:800}.logo span{color:var(--p)}
+main{padding:8px 18px 24px}
+h1{font-size:27px;margin:8px 0}.muted{color:var(--muted);font-size:13px}
+.hero{background:linear-gradient(135deg,#555ce4,#8880f5);color:white;padding:22px;border-radius:22px;margin:20px 0}
+.hero h2{margin:10px 0}.hero p{font-size:13px;line-height:1.6}
+.stats{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.card{background:white;border:1px solid var(--line);border-radius:17px;padding:16px;margin-bottom:12px}
+.number{font-size:26px;font-weight:800;margin-top:12px}
+.heading{display:flex;justify-content:space-between;align-items:center;margin:24px 0 12px}
+.heading h2{font-size:17px;margin:0}
+button,input,select{font:inherit}
+button{cursor:pointer}
+.primary{background:var(--p);color:white;border:0;padding:11px 15px;border-radius:11px;font-weight:bold}
+.link{background:none;color:var(--p);border:0;font-weight:bold}
+.task{display:flex;align-items:center;gap:10px;border-bottom:1px solid var(--line);padding:13px 0}
+.task:last-child{border-bottom:0}.task input[type=checkbox]{width:19px;height:19px;accent-color:var(--p)}
+.task-info{flex:1;min-width:0}.task-info strong{font-size:13px;overflow-wrap:anywhere}
+.task-info small{display:block;color:var(--muted);margin-top:5px}
+.done strong{text-decoration:line-through;color:var(--muted)}
+.tag{font-size:10px;background:#fff0df;color:#985b15;padding:5px 7px;border-radius:7px}
+.filters{display:flex;gap:7px;margin-bottom:13px;flex-wrap:wrap}
+.filters button{background:white;border:1px solid var(--line);padding:8px 11px;border-radius:9px;font-size:12px}
+.filters button.active{background:#e9eaff;color:var(--p);border-color:#c9cbff}
+.nav{position:fixed;bottom:0;left:50%;transform:translateX(-50%);width:min(100%,440px);display:flex;justify-content:space-around;background:white;border-top:1px solid var(--line);padding:12px 4px}
+.nav button{border:0;background:none;color:var(--muted);font-size:11px;padding:5px}
+.nav button.active{color:var(--p);font-weight:bold}
+.nav b{display:block;font-size:19px;margin-bottom:5px}
+input[type=text],input[type=date],select{width:100%;padding:12px;border:1px solid var(--line);border-radius:10px;margin:6px 0 13px;background:white}
+label{font-size:12px;font-weight:bold}
+.bar{height:9px;border-radius:10px;background:#e9eaf5;overflow:hidden;margin:12px 0}
+.bar span{display:block;height:100%;background:var(--p);border-radius:10px}
+.session{padding:13px;margin:12px 0;border-left:4px solid var(--p);background:#eeeefe;border-radius:9px}
+.session strong{font-size:13px}.session small{display:block;margin-top:5px;color:var(--muted)}
+.toast{position:fixed;bottom:80px;left:50%;transform:translateX(-50%);background:#222744;color:white;padding:12px 17px;border-radius:12px;display:none;font-size:12px;max-width:90%}
+@media(min-width:600px){body{padding:20px 0}.app{border-radius:24px;overflow:hidden;box-shadow:0 15px 50px #20254415}.nav{bottom:20px;border-radius:0 0 24px 24px}}
+</style>
+</head>
+<body>
+<div class="app">
+<header><div class="logo">✦ <span>Study</span>Flow</div><div>👤</div></header>
+<main id="screen"></main>
+<nav class="nav">
+<button class="active" data-page="home"><b>⌂</b>Home</button>
+<button data-page="tasks"><b>☷</b>Tasks</button>
+<button data-page="schedule"><b>▦</b>Schedule</button>
+<button data-page="progress"><b>◔</b>Progress</button>
+</nav>
+</div>
+<div id="toast" class="toast"></div>
+<script>
+let tasks=[
+{id:1,title:"Revise Data Structures",subject:"Computer Science",done:false,priority:"High"},
+{id:2,title:"Complete CN assignment",subject:"Networking",done:false,priority:"Medium"},
+{id:3,title:"Practice Python",subject:"Programming",done:true,priority:"Low"}
+];
+let page="home",filter="All",nextId=4;
+const screen=document.querySelector("#screen");
+function say(s){let t=document.querySelector("#toast");t.textContent=s;t.style.display="block";setTimeout(()=>t.style.display="none",2000)}
+function safe(s){return String(s).replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]))}
+function taskHTML(list){if(!list.length)return '<p class="muted">No tasks here yet. Add one to get started!</p>';return list.map(t=>`<div class="task ${t.done?"done":""}"><input aria-label="Complete task" type="checkbox" ${t.done?"checked":""} onchange="toggle(${t.id})"><div class="task-info"><strong>${safe(t.title)}</strong><small>${safe(t.subject)}</small></div><span class="tag">${safe(t.priority)}</span><button class="link" aria-label="Edit task" onclick="editTask(${t.id})">✎</button></div>`).join("")}
+function title(k,h,s){return `<p class="muted">${k.toUpperCase()}</p><h1>${h}</h1><p class="muted">${s}</p>`}
+function home(){let done=tasks.filter(t=>t.done).length;return `${title("YOUR STUDY SPACE","Hey, Aarav 👋","Ready to make today count?")}<section class="hero"><small>YOUR DAILY GOAL</small><h2>Make progress every day.</h2><p>Small focused sessions can turn big goals into achievements. Let’s get started!</p><button class="primary" style="background:white;color:#555ce4" onclick="go('tasks')">View my tasks →</button></section><div class="stats"><div class="card"><div class="muted">Total tasks</div><div class="number">${tasks.length}</div></div><div class="card"><div class="muted">Completed</div><div class="number">${done}</div></div></div><div class="heading"><h2>Focus for today</h2><button class="link" onclick="go('tasks')">See all →</button></div><div class="card">${taskHTML(tasks.filter(t=>!t.done).slice(0,3))}</div><div class="heading"><h2>Next study session</h2></div><div class="card"><div class="session"><strong>11:00 AM · Computer Networks</strong><small>Lecture / focused revision · 50 minutes</small></div><div class="session"><strong>1:30 PM · Data Structures</strong><small>Practice session · 45 minutes</small></div></div>`}
+function taskPage(){let list=tasks.filter(t=>filter==="All"||(filter==="Completed"&&t.done)||(filter==="Pending"&&!t.done));return `${title("STAY ORGANIZED","My tasks","Manage your assignments and study goals.")}<div class="filters">${["All","Pending","Completed"].map(f=>`<button class="${filter===f?"active":""}" onclick="setFilter('${f}')">${f}</button>`).join("")}</div><div class="card">${taskHTML(list)}</div><div class="card"><h3 id="formTitle">Add a task</h3><form id="taskForm"><label for="taskTitle">TASK NAME</label><input id="taskTitle" type="text" maxlength="100" required placeholder="e.g. Revise Operating Systems"><label for="subject">SUBJECT</label><input id="subject" type="text" maxlength="60" placeholder="e.g. Computer Science"><label for="priority">PRIORITY</label><select id="priority"><option>Medium</option><option>High</option><option>Low</option></select><button class="primary" type="submit">Save task +</button><button class="link" type="button" onclick="resetForm()">Cancel</button></form></div>`}
+function schedule(){return `${title("PLAN AHEAD","My schedule","Give your goals a place in your day.")}<div class="card"><div class="session"><strong>9:00 AM · Morning review</strong><small>30 minutes · Personal study</small></div><div class="session" style="border-color:#24a67a;background:#e7f8f0"><strong>11:00 AM · Computer Networks</strong><small>50 minutes · Lecture and notes</small></div><div class="session" style="border-color:#efa344;background:#fff3e4"><strong>1:30 PM · Data Structures</strong><small>45 minutes · Problem solving</small></div><div class="session"><strong>4:00 PM · Assignment time</strong><small>40 minutes · Review and submit</small></div><p class="muted">Sample timetable for the prototype.</p></div>`}
+function progress(){let done=tasks.filter(t=>t.done).length,p=tasks.length?Math.round(done/tasks.length*100):0;return `${title("YOUR ACHIEVEMENTS","Your progress","Every completed task is a step forward.")}<div class="stats"><div class="card"><div class="muted">Completed</div><div class="number">${done}</div></div><div class="card"><div class="muted">Remaining</div><div class="number">${tasks.length-done}</div></div></div><div class="card"><strong>Overall task completion</strong><h2>${p}%</h2><div class="bar"><span style="width:${p}%"></span></div><p class="muted">Complete tasks on the Tasks screen to update your progress.</p></div><div class="card"><strong>Keep going 🌱</strong><p class="muted">Consistency matters more than perfection. Celebrate your small wins!</p></div>`}
+function render(){screen.innerHTML=({home,tasks:taskPage,schedule,progress})[page]();document.querySelectorAll("[data-page]").forEach(b=>b.classList.toggle("active",b.dataset.page===page));if(page==="tasks"){document.querySelector("#taskForm").addEventListener("submit",saveTask)}}
+function go(p){page=p;render();window.scrollTo(0,0)}
+document.querySelectorAll("[data-page]").forEach(b=>b.addEventListener("click",()=>go(b.dataset.page)));
+function toggle(id){tasks=tasks.map(t=>t.id===id?{...t,done:!t.done}:t);render();say("Task status updated!")}
+function setFilter(f){filter=f;render()}
+let editing=null;
+function saveTask(e){e.preventDefault();let title=document.querySelector("#taskTitle").value.trim();if(!title)return;let subject=document.querySelector("#subject").value.trim()||"General";let priority=document.querySelector("#priority").value;if(editing!==null){tasks=tasks.map(t=>t.id===editing?{...t,title,subject,priority}:t);editing=null;say("Task updated!")}else{tasks.unshift({id:nextId++,title,subject,priority,done:false});say("Task added!")}filter="All";render()}
+function editTask(id){let t=tasks.find(x=>x.id===id);editing=id;document.querySelector("#taskTitle").value=t.title;document.querySelector("#subject").value=t.subject;document.querySelector("#priority").value=t.priority;document.querySelector("#formTitle").textContent="Edit task";document.querySelector("#taskTitle").focus();window.scrollTo({top:document.body.scrollHeight,behavior:"smooth"})}
+function resetForm(){editing=null;render()}
+render();
+</script>
+</body>
+</html>
